@@ -10,19 +10,20 @@ class Code:
     """
     # Succeeded
     SUCCESS = 0
-    # Failed: internal error
-    FAIL_INTERNAL_ERROR = 1
     # Failed: wrong username or password
     FAIL_WRONG_USERNAME_OR_PASSWORD = 1
     # Failed: item not found
     FAIL_ITEM_NOT_FOUND = 2
+    # Failed: user already exists
+    FAIL_USER_ALREADY_EXISTS = 3
     # Failed: item already exists
     FAIL_ITEM_ALREADY_EXISTS = 3
-    # Failed: illegal username
-    FAIL_ILLEGAL_USERNAME = 4
+    # Failed: illegal username or password
+    FAIL_ILLEGAL_USERNAME_OR_PASSWORD = 4
     # Failed: illegal item number
     FAIL_ILLEGAL_NUMBER = 5
-
+    # Failed: illegal item price
+    FAIL_ILLEGAL_PRICE = 6
 
 class Item:
     """
@@ -67,8 +68,12 @@ class User:
             # succeed: insert item into list
             self.shopping_list.append({'item': item, 'number': number})
             return Code.SUCCESS
+        elif not item:
+            # failed: item not found
+            return Code.FAIL_ITEM_NOT_FOUND
         else:
-            return Code.FAIL_INTERNAL_ERROR
+            # failed: illegal number
+            return Code.FAIL_ILLEGAL_NUMBER
 
     def delete_item(self, item: Item) -> int:
         """ delete selected item from the shopping list
@@ -86,7 +91,7 @@ class User:
             # failed: item not found
             return Code.FAIL_ITEM_NOT_FOUND
         else:
-            return Code.FAIL_INTERNAL_ERROR
+            return Code.FAIL_ITEM_NOT_FOUND
 
     def modify_item(self, item: Item, number: float) -> int:
         """ modify the number of selected item in the shopping list
@@ -104,8 +109,12 @@ class User:
                     return Code.SUCCESS
             # failed: item not found
             return Code.FAIL_ITEM_NOT_FOUND
+        elif not item:
+            # failed: item not found
+            return Code.FAIL_ITEM_NOT_FOUND
         else:
-            return Code.FAIL_INTERNAL_ERROR
+            # failed: illegal number
+            return Code.FAIL_ILLEGAL_NUMBER
 
     def clear_item(self) -> int:
         """ clear the shopping list
@@ -115,7 +124,7 @@ class User:
         self.shopping_list.clear()
         return Code.SUCCESS
 
-    def print_list(self):
+    def print_shopping_list(self):
         """ print the shopping list
         """
         # create table with PrettyTable
@@ -175,52 +184,243 @@ class Manager:
         self.current_status = Manager.USER_OFFLINE_STATUS
         self.load()
         # ***** Loop *****
-        while True:
-            user_input = input()
+        ongoing = True
+        while ongoing:
             if self.current_status == Manager.USER_OFFLINE_STATUS:
                 # *** Handle User Offline ***
-                while user_input != 'exit':
-                    if user_input == '':
-                        pass
-                    user_input = input()
-                else:
-                    break
-
+                self.help()  # print hint for user
+                while True:
+                    user_input = input('\n(?) >>>')
+                    if user_input == 'logon':
+                        # * get input *
+                        username = input('* Please input username:')
+                        password = input('* Please input password:')
+                        # * perform operation *
+                        result = self.logon(username, password)
+                        # * check result *
+                        if result == Code.FAIL_ILLEGAL_USERNAME_OR_PASSWORD:
+                            print('* [Failed] Illegal username or password!')
+                        elif result == Code.FAIL_USER_ALREADY_EXISTS:
+                            print('* [Failed] User already exists!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] Registered (' + username + ') successfully.')
+                    elif user_input == 'login':
+                        # * get input *
+                        username = input('* Please input username:')
+                        password = input('* Please input password:')
+                        # * perform operation *
+                        result = self.login(username, password)
+                        # * check result *
+                        if result == Code.FAIL_WRONG_USERNAME_OR_PASSWORD:
+                            print('* [Failed] Wrong username or password!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] Login (' + username + ') successfully.')
+                            break
+                    elif user_input == 'help':
+                        # * perform operation *
+                        self.help()  # print hint for user
+                    elif user_input == 'exit':
+                        # * perform operation *
+                        ongoing = False  # label to exit outer loop
+                        break
+                    else:
+                        print('* [Failed] Unknown command!')
             elif self.current_status == Manager.USER_ONLINE_STATUS:
                 # *** Handle User Online ***
-                while user_input != 'exit':
-                    break
-                else:
-                    break
+                self.help()  # print hint for user
+                while True:
+                    user_input = input('\n(' + self.current_user.username + ') >>>')
+                    if user_input == 'shop':
+                        # * perform operation *
+                        self.print_item_list()
+                    elif user_input == 'cart':
+                        # * perform operation *
+                        self.current_user.print_shopping_list()
+                    elif user_input == 'insert':
+                        # * get input *
+                        self.print_item_list()  # print the item list
+                        item_name = input('* Please input item name:')
+                        number = input('* Please input number:')
+                        # * perform operation *
+                        result = self.current_user.insert_item(self.search_item(item_name), float(number))
+                        # * check result *
+                        if result == Code.FAIL_ITEM_ALREADY_EXISTS:
+                            print('* [Failed] item already exists!')
+                        elif result == Code.FAIL_ITEM_NOT_FOUND:
+                            print('* [Failed] item not found!')
+                        elif result == Code.FAIL_ILLEGAL_NUMBER:
+                            print('* [Failed] illegal number!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] insert item successfully.')
+                            self.current_user.print_shopping_list()  # print the shopping list
+                    elif user_input == 'delete':
+                        # * get input *
+                        self.print_item_list()  # print the item list
+                        item_name = input('* Please input item name:')
+                        # * perform operation *
+                        result = self.current_user.delete_item(self.search_item(item_name))
+                        # * check result *
+                        if result == Code.FAIL_ITEM_NOT_FOUND:
+                            print('* [Failed] item not found!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] delete item successfully.')
+                            self.current_user.print_shopping_list()  # print the shopping list
+                    elif user_input == 'modify':
+                        # * get input *
+                        self.current_user.print_shopping_list()  # print the shopping list
+                        item_name = input('* Please input item name:')
+                        number = input('* Please input number:')
+                        # * perform operation *
+                        result = self.current_user.modify_item(self.search_item(item_name), float(number))
+                        # * check result *
+                        if result == Code.FAIL_ITEM_NOT_FOUND:
+                            print('* [Failed] item not found!')
+                        elif result == Code.FAIL_ILLEGAL_NUMBER:
+                            print('* [Failed] illegal number!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] modify item successfully.')
+                            self.current_user.print_shopping_list()  # print the shopping list
+                    elif user_input == 'pay':
+                        # * perform operation *
+                        self.current_user.print_shopping_list()  # print the shopping list
+                        result = self.current_user.calculate_sum()
+                        print('* [Succeed] your bill: ' + str(result) + '.')
+                        self.current_user.clear_item()  # clear the shopping list
+                        self.current_user.print_shopping_list()  # print the shopping list
+                    elif user_input == 'logout':
+                        # * perform operation *
+                        result = self.logout()
+                        # * check result *
+                        if result == Code.SUCCESS:
+                            print('* [Succeed] Logout successfully.')
+                        break
+                    elif user_input == 'help':
+                        # * perform operation *
+                        self.help()  # print hint for user
+                    elif user_input == 'exit':
+                        # * perform operation *
+                        ongoing = False  # label to exit outer loop
+                        break
+                    else:
+                        print('* [Failed] Unknown command!')
             elif self.current_status == Manager.ADMIN_ONLINE_STATUS:
                 # *** Handle Admin Online ***
-                while user_input != 'exit':
-                    break
-                else:
-                    break
+                self.help()  # print hint for user
+                while True:
+                    user_input = input('\n(Admin) >>>')
+                    if user_input == 'user':
+                        # * perform operation *
+                        self.print_user_list()
+                    elif user_input == 'shop':
+                        # * perform operation *
+                        self.print_item_list()
+                    elif user_input == 'insert':
+                        # * get input *
+                        self.print_item_list()  # print the item list
+                        item_name = input('* Please input item name:')
+                        price = input('* Please input price:')
+                        unit = input('* Please input unit:')
+                        # * perform operation *
+                        result = self.insert_item(item_name, float(price), unit)
+                        # * check result *
+                        if result == Code.FAIL_ILLEGAL_PRICE:
+                            print('* [Failed] illegal item price!')
+                        elif result == Code.FAIL_ITEM_ALREADY_EXISTS:
+                            print('* [Failed] item already exists!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] insert item successfully.')
+                            self.print_item_list()  # print the item list
+                    elif user_input == 'delete':
+                        # * get input *
+                        self.print_item_list()  # print the item list
+                        item_name = input('* Please input item name:')
+                        # * perform operation *
+                        result = self.delete_item(item_name)
+                        # * check result *
+                        if result == Code.FAIL_ITEM_NOT_FOUND:
+                            print('* [Failed] item not found!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] delete item successfully.')
+                            self.print_item_list()  # print the item list
+                    elif user_input == 'modify':
+                        # * get input *
+                        self.print_item_list()  # print the item list
+                        item_name = input('* Please input item name:')
+                        price = input('* Please input price:')
+                        # * perform operation *
+                        result = self.modify_item(item_name, float(price))
+                        # * check result *
+                        if result == Code.FAIL_ILLEGAL_PRICE:
+                            print('* [Failed] illegal item price!')
+                        elif result == Code.FAIL_ITEM_NOT_FOUND:
+                            print('* [Failed] item not found!')
+                        elif result == Code.SUCCESS:
+                            print('* [Succeed] modify item successfully.')
+                            self.print_item_list()  # print the item list
+                    elif user_input == 'clear':
+                        # * perform operation *
+                        result = self.clear_item()
+                        # * check result *
+                        if result == Code.SUCCESS:
+                            print('* [Succeed] Clear item list successfully.')
+                            self.print_item_list()  # print the item list
+                    elif user_input == 'logout':
+                        # * perform operation *
+                        result = self.logout()
+                        # * check result *
+                        if result == Code.SUCCESS:
+                            print('* [Succeed] Logout successfully.')
+                        break
+                    elif user_input == 'help':
+                        # * perform operation *
+                        self.help()  # print hint for user
+                    elif user_input == 'exit':
+                        # * perform operation *
+                        ongoing = False  # label to exit outer loop
+                        break
+                    else:
+                        print('* [Failed] Unlknown command!')
         # ***** Save *****
         self.save()
+        print('* [Succeed] Program exit successfully.')
 
     def help(self):
         """ print hint for user
         """
         if self.current_status == Manager.USER_OFFLINE_STATUS:
             # print hint for user not logged in
-            print('**********')
+            print('\n****** User Offline ******')
             print('<logon>:  user register')
             print('<login>:  user login')
-            print('<help>:   print hint')
+            print('<help>:   display hint')
             print('<exit>:   exit program')
+            print('*************************')
         elif self.current_status == Manager.USER_ONLINE_STATUS:
             # print hint for user logged in
+            print('\n****** User  Online ******')
+            print('<shop>:   display item list')
+            print('<cart>:   display shopping cart')
+            print('<insert>: insert items')
+            print('<delete>: delete items')
+            print('<modify>: modify items')
+            print('<pay>:    pay the bill')
             print('<logout>: user logout')
             print('<help>:   print hint')
             print('<exit>:   exit program')
+            print('*************************')
         elif self.current_status == Manager.ADMIN_ONLINE_STATUS:
             # print hint for admin logged in
+            print('\n****** Admin Online *****')
+            print('<user>:   display user list')
+            print('<shop>:   display item list')
+            print('<insert>: insert items')
+            print('<delete>: delete items')
+            print('<modify>: modify items')
+            print('<clear>:  clear items')
             print('<logout>: user logout')
-            print('<help>:   print hint')
+            print('<help>:   display hint')
             print('<exit>:   exit program')
+            print('************************A*')
 
     def load(self):
         pass
@@ -234,7 +434,21 @@ class Manager:
         :param password: password of the user
         :return: running result status code
         """
-        pass
+        # check whether arguments are valid
+        if not username or not password:
+            # failed: illegal username or password
+            return Code.FAIL_ILLEGAL_USERNAME_OR_PASSWORD
+        # check whether user already exists
+        if self.admin_username == username:
+            # failed: user already exists
+            return Code.FAIL_USER_ALREADY_EXISTS
+        for i in range(len(self.user_list)):
+            if self.user_list[i].username == username:
+                # failed: user already exists
+                return Code.FAIL_USER_ALREADY_EXISTS
+        # succeed: user logon
+        self.user_list.append(User(username, password))
+        return Code.SUCCESS
 
     def login(self, username: str, password: str) -> int:
         """
@@ -283,6 +497,10 @@ class Manager:
         :param unit: unit of the new item to insert
         :return: running result status code
         """
+        # check whether price is valid
+        if price < 0:
+            # failed: illegal item price
+            return Code.FAIL_ILLEGAL_PRICE
         # check whether item already exists
         for i in range(len(self.item_list)):
             if self.item_list[i].name == name:
@@ -313,6 +531,10 @@ class Manager:
         :param price: new item price
         :return: running result status code
         """
+        # check whether price is valid
+        if price < 0:
+            # failed: illegal item price
+            return Code.FAIL_ILLEGAL_PRICE
         # check whether selected item exists
         # if exists, modify the price
         for i in range(len(self.item_list)):
@@ -374,5 +596,5 @@ class Manager:
 # Program Entrance #
 ####################
 if __name__ == '__main__':
-    manager = Manager('', '')
+    manager = Manager('NUS', 'NUS')
     manager.run()
