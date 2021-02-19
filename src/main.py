@@ -1,6 +1,7 @@
 ####################
-# [iShop]  ver 0.1 #
+# [iShop]  ver 1.0 #
 ####################
+import json
 import prettytable as pt
 
 
@@ -25,11 +26,12 @@ class Code:
     # Failed: illegal item price
     FAIL_ILLEGAL_PRICE = 6
 
+
 class Item:
     """
     Class: Item
     """
-    def __init__(self, name: str = '', price: float = 0.0, unit: str = ''):
+    def __init__(self, name: str, price: float, unit: str):
         """
         :param name: name of the item
         :param price: price of the item
@@ -44,14 +46,19 @@ class User:
     """
     Class: User
     """
-    def __init__(self, username: str, password: str = ''):
+    def __init__(self, username: str, password: str, shopping_list=None):
         """
         :param username: username of the user
         :param password: password of the user
         """
+        if shopping_list is None:
+            shopping_list = []
         self.username = username
         self.password = password
-        self.shopping_list = []
+        if shopping_list:
+            self.shopping_list = shopping_list
+        else:
+            self.shopping_list = []
 
     def insert_item(self, item: Item, number: float) -> int:
         """ insert new item into the shopping list
@@ -161,6 +168,7 @@ class Manager:
     """
     Class: Program Manager
     """
+    DATA_FILE_PATH = 'data.txt'
     USER_OFFLINE_STATUS = 0  # status code when user not logged in
     USER_ONLINE_STATUS = 1   # status code when user logged in
     ADMIN_ONLINE_STATUS = 2  # status code when admin logged in
@@ -181,6 +189,7 @@ class Manager:
         """ run shopping system
         """
         # ***** Load *****
+        print('********** iShop **********')
         self.current_status = Manager.USER_OFFLINE_STATUS
         self.load()
         # ***** Loop *****
@@ -242,7 +251,12 @@ class Manager:
                         item_name = input('* Please input item name:')
                         number = input('* Please input number:')
                         # * perform operation *
-                        result = self.current_user.insert_item(self.search_item(item_name), float(number))
+                        try:
+                            number = float(number)
+                        except ValueError:
+                            print('* [Failed] illegal number!')
+                            continue
+                        result = self.current_user.insert_item(self.search_item(item_name), number)
                         # * check result *
                         if result == Code.FAIL_ITEM_ALREADY_EXISTS:
                             print('* [Failed] item already exists!')
@@ -271,7 +285,12 @@ class Manager:
                         item_name = input('* Please input item name:')
                         number = input('* Please input number:')
                         # * perform operation *
-                        result = self.current_user.modify_item(self.search_item(item_name), float(number))
+                        try:
+                            number = float(number)
+                        except ValueError:
+                            print('* [Failed] illegal number!')
+                            continue
+                        result = self.current_user.modify_item(self.search_item(item_name), number)
                         # * check result *
                         if result == Code.FAIL_ITEM_NOT_FOUND:
                             print('* [Failed] item not found!')
@@ -321,7 +340,12 @@ class Manager:
                         price = input('* Please input price:')
                         unit = input('* Please input unit:')
                         # * perform operation *
-                        result = self.insert_item(item_name, float(price), unit)
+                        try:
+                            price = float(price)
+                        except ValueError:
+                            print('* [Failed] illegal number!')
+                            continue
+                        result = self.insert_item(item_name, price, unit)
                         # * check result *
                         if result == Code.FAIL_ILLEGAL_PRICE:
                             print('* [Failed] illegal item price!')
@@ -348,7 +372,12 @@ class Manager:
                         item_name = input('* Please input item name:')
                         price = input('* Please input price:')
                         # * perform operation *
-                        result = self.modify_item(item_name, float(price))
+                        try:
+                            price = float(price)
+                        except ValueError:
+                            print('* [Failed] illegal number!')
+                            continue
+                        result = self.modify_item(item_name, price)
                         # * check result *
                         if result == Code.FAIL_ILLEGAL_PRICE:
                             print('* [Failed] illegal item price!')
@@ -423,10 +452,34 @@ class Manager:
             print('************************A*')
 
     def load(self):
-        pass
+        try:
+            file = open(Manager.DATA_FILE_PATH, 'r+')
+            item_list_string = file.readline()
+            user_list_string = file.readline()
+            self.item_list = [Item(item['name'], item['price'], item['unit']) for item in json.loads(item_list_string)]  # convert to object
+            self.user_list = [
+                User(user['username'], user['password'], [{'item': Item(pair['item']['name'], pair['item']['price'], pair['item']['unit']), 'number': pair['number']} for pair in user['shopping_list']])
+                for user in json.loads(user_list_string)
+            ]  # convert to object
+            file.close()
+            print('* [Succeed] Load data from <' + Manager.DATA_FILE_PATH + '> successfully.')
+        except FileNotFoundError:
+            print('* [Failed] Load data from <' + Manager.DATA_FILE_PATH + '> failed.')
 
     def save(self):
-        pass
+        file = open('data.txt', 'w')
+        item_list_string = json.dumps([{'name': item.name, 'price': item.price, 'unit': item.unit} for item in self.item_list])  # convert to string
+        user_list_string = json.dumps([
+            {'username': user.username,
+             'password': user.password,
+             'shopping_list': [{'item': {'name': pair['item'].name, 'price': pair['item'].price, 'unit': pair['item'].unit}, 'number': pair['number']} for pair in user.shopping_list]
+             }
+            for user in self.user_list
+        ])  # convert to string
+        file.write(item_list_string + '\n')
+        file.write(user_list_string + '\n')
+        file.close()
+        print('* [Succeed] Save data into <' + Manager.DATA_FILE_PATH + '> successfully.')
 
     def logon(self, username: str, password: str) -> int:
         """
