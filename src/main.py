@@ -62,8 +62,9 @@ class User:
             # check whether item already exists
             for i in range(len(self.shopping_list)):
                 if self.shopping_list[i]['item'] == item:
+                    # failed: item already exists
                     return Code.FAIL_ITEM_ALREADY_EXISTS
-            # insert item into list
+            # succeed: insert item into list
             self.shopping_list.append({'item': item, 'number': number})
             return Code.SUCCESS
         else:
@@ -79,9 +80,10 @@ class User:
             # if exists, delete item from list
             for i in range(len(self.shopping_list)):
                 if self.shopping_list[i]['item'] == item:
+                    # succeed: delete item from list
                     self.shopping_list.pop(i)
                     return Code.SUCCESS
-            # item not found
+            # failed: item not found
             return Code.FAIL_ITEM_NOT_FOUND
         else:
             return Code.FAIL_INTERNAL_ERROR
@@ -97,9 +99,10 @@ class User:
             # if exists, modify the number
             for i in range(len(self.shopping_list)):
                 if self.shopping_list[i]['item'] == item:
+                    # succeed: modify the number
                     self.shopping_list[i]['number'] = number
                     return Code.SUCCESS
-            # item not found
+            # failed: item not found
             return Code.FAIL_ITEM_NOT_FOUND
         else:
             return Code.FAIL_INTERNAL_ERROR
@@ -108,6 +111,7 @@ class User:
         """ clear the shopping list
         :return: running result status code
         """
+        # succeed: clear the shopping list
         self.shopping_list.clear()
         return Code.SUCCESS
 
@@ -224,14 +228,43 @@ class Manager:
     def save(self):
         pass
 
-    def logon(self):
+    def logon(self, username: str, password: str) -> int:
+        """
+        :param username: username of the user
+        :param password: password of the user
+        :return: running result status code
+        """
         pass
 
-    def login(self):
-        pass
+    def login(self, username: str, password: str) -> int:
+        """
+        :param username: username of the user
+        :param password: password of the user
+        :return: running result status code
+        """
+        # check whether is admin
+        if self.admin_username == username and self.admin_password == password:
+            # succeed: admin login
+            self.current_user = None
+            self.current_status = Manager.ADMIN_ONLINE_STATUS
+            return Code.SUCCESS
+        # check whether user exists
+        for i in range(len(self.user_list)):
+            if self.user_list[i].username == username and self.user_list[i].password == password:
+                # succeed: user login
+                self.current_user = self.user_list[i]
+                self.current_status = Manager.USER_ONLINE_STATUS
+                return Code.SUCCESS
+        # failed: wrong username or password
+        return Code.FAIL_WRONG_USERNAME_OR_PASSWORD
 
-    def logout(self):
-        pass
+    def logout(self) -> int:
+        """
+        :return: running result status code
+        """
+        self.current_user = None
+        self.current_status = Manager.USER_OFFLINE_STATUS
+        return Code.SUCCESS
 
     def search_item(self, name: str) -> Item or None:
         """ search for item by name in the item list
@@ -253,8 +286,9 @@ class Manager:
         # check whether item already exists
         for i in range(len(self.item_list)):
             if self.item_list[i].name == name:
+                # failed: item already exists
                 return Code.FAIL_ITEM_ALREADY_EXISTS
-        # insert item into list
+        # succeed: insert item into list
         self.item_list.append(Item(name, price, unit))
         return Code.SUCCESS
 
@@ -267,9 +301,10 @@ class Manager:
         # if exists, delete item from list
         for i in range(len(self.item_list)):
             if self.item_list[i].name == name:
+                # succeed: delete item from list
                 self.item_list.pop(i)
                 return Code.SUCCESS
-        # item not found
+        # failed: item not found
         return Code.FAIL_ITEM_NOT_FOUND
 
     def modify_item(self, name: str, price: float) -> int:
@@ -282,15 +317,17 @@ class Manager:
         # if exists, modify the price
         for i in range(len(self.item_list)):
             if self.item_list[i].name == name:
+                # succeed: modify the price
                 self.item_list[i].price = price
                 return Code.SUCCESS
-        # item not found
+        # failed: item not found
         return Code.FAIL_ITEM_NOT_FOUND
 
     def clear_item(self) -> int:
         """ clear the item list
         :return: running result status code
         """
+        # succeed: clear the item list
         self.item_list.clear()
         return Code.SUCCESS
 
