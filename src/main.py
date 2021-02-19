@@ -1,6 +1,6 @@
-""""""""""""""""""""
-" [iShop]  ver 0.1 "
-""""""""""""""""""""
+####################
+# [iShop]  ver 0.1 #
+####################
 import prettytable as pt
 
 
@@ -28,7 +28,6 @@ class Item:
     """
     Class: Item
     """
-
     def __init__(self, name: str = '', price: float = 0.0, unit: str = ''):
         """
         :param name: name of the item
@@ -44,7 +43,6 @@ class User:
     """
     Class: User
     """
-
     def __init__(self, username: str, password: str = ''):
         """
         :param username: username of the user
@@ -133,6 +131,7 @@ class User:
             ])
         # add the sum of all items as the last row
         table.add_row(['', '', '', self.calculate_sum()])
+        # print the table
         print(table)
 
     def calculate_sum(self) -> float:
@@ -150,7 +149,7 @@ class Manager:
     Class: Program Manager
     """
     USER_OFFLINE_STATUS = 0  # status code when user not logged in
-    USER_ONLINE_STATUS = 1  # status code when user logged in
+    USER_ONLINE_STATUS = 1   # status code when user logged in
     ADMIN_ONLINE_STATUS = 2  # status code when admin logged in
 
     def __init__(self, username: str, password: str = ''):
@@ -158,30 +157,66 @@ class Manager:
         :param username: username of the admin
         :param password: password of the admin
         """
+        self.item_list = []
+        self.user_list = []
         self.admin_username = username
         self.admin_password = password
         self.current_user = None
         self.current_status = Manager.USER_OFFLINE_STATUS
-        self.item_list = []
-        self.user_list = []
 
     def run(self):
         """ run shopping system
         """
-        # ***** Main Loop *****
+        # ***** Load *****
+        self.current_status = Manager.USER_OFFLINE_STATUS
+        self.load()
+        # ***** Loop *****
         while True:
+            user_input = input()
             if self.current_status == Manager.USER_OFFLINE_STATUS:
                 # *** Handle User Offline ***
-                while True:
+                while user_input != 'exit':
+                    if user_input == '':
+                        pass
+                    user_input = input()
+                else:
                     break
+
             elif self.current_status == Manager.USER_ONLINE_STATUS:
                 # *** Handle User Online ***
-                while True:
+                while user_input != 'exit':
+                    break
+                else:
                     break
             elif self.current_status == Manager.ADMIN_ONLINE_STATUS:
                 # *** Handle Admin Online ***
-                while True:
+                while user_input != 'exit':
                     break
+                else:
+                    break
+        # ***** Save *****
+        self.save()
+
+    def help(self):
+        """ print hint for user
+        """
+        if self.current_status == Manager.USER_OFFLINE_STATUS:
+            # print hint for user not logged in
+            print('**********')
+            print('<logon>:  user register')
+            print('<login>:  user login')
+            print('<help>:   print hint')
+            print('<exit>:   exit program')
+        elif self.current_status == Manager.USER_ONLINE_STATUS:
+            # print hint for user logged in
+            print('<logout>: user logout')
+            print('<help>:   print hint')
+            print('<exit>:   exit program')
+        elif self.current_status == Manager.ADMIN_ONLINE_STATUS:
+            # print hint for admin logged in
+            print('<logout>: user logout')
+            print('<help>:   print hint')
+            print('<exit>:   exit program')
 
     def load(self):
         pass
@@ -198,40 +233,109 @@ class Manager:
     def logout(self):
         pass
 
-    def print_hint(self):
-        """ print hint for user
+    def search_item(self, name: str) -> Item or None:
+        """ search for item by name in the item list
+        :param name: name of the item
+        :return: item found or None if not found
         """
-        if self.current_status == Manager.USER_OFFLINE_STATUS:
-            # print hint for user not logged in
-            print('**********')
-            print('<logon>: user register')
-            print('<login>: user login')
-            print('<help>: print hint')
-            print('<exit>: exit program')
-        elif self.current_status == Manager.USER_ONLINE_STATUS:
-            # print hint for user logged in
-            print('<logout>')
-            print('<help>')
-            print('<exit>')
-        elif self.current_status == Manager.ADMIN_ONLINE_STATUS:
-            # print hint for admin logged in
-            print('<logout>')
-            print('<help>')
-            print('<exit>')
+        for i in range(len(self.item_list)):
+            if self.item_list[i].name == name:
+                return self.item_list[i]
+        return None
 
-    def insert_item(self):
-        pass
+    def insert_item(self, name: str, price: float, unit: str) -> int:
+        """ insert new item into the item list
+        :param name: name of the new item to insert
+        :param price: price of the new item to insert
+        :param unit: unit of the new item to insert
+        :return: running result status code
+        """
+        # check whether item already exists
+        for i in range(len(self.item_list)):
+            if self.item_list[i].name == name:
+                return Code.FAIL_ITEM_ALREADY_EXISTS
+        # insert item into list
+        self.item_list.append(Item(name, price, unit))
+        return Code.SUCCESS
 
-    def delete_item(self):
-        pass
+    def delete_item(self, name: str) -> int:
+        """ delete selected item from the item list
+        :param name: name of selected item to delete
+        :return: running result status code
+        """
+        # check whether selected item exists
+        # if exists, delete item from list
+        for i in range(len(self.item_list)):
+            if self.item_list[i].name == name:
+                self.item_list.pop(i)
+                return Code.SUCCESS
+        # item not found
+        return Code.FAIL_ITEM_NOT_FOUND
 
-    def modify_item(self):
-        pass
+    def modify_item(self, name: str, price: float) -> int:
+        """ modify the price of selected item in the item list
+        :param name: name of selected item to modify
+        :param price: new item price
+        :return: running result status code
+        """
+        # check whether selected item exists
+        # if exists, modify the price
+        for i in range(len(self.item_list)):
+            if self.item_list[i].name == name:
+                self.item_list[i].price = price
+                return Code.SUCCESS
+        # item not found
+        return Code.FAIL_ITEM_NOT_FOUND
 
-    def display_item(self):
-        pass
+    def clear_item(self) -> int:
+        """ clear the item list
+        :return: running result status code
+        """
+        self.item_list.clear()
+        return Code.SUCCESS
+
+    def print_user_list(self):
+        """ print the user list
+        """
+        # create table with PrettyTable
+        table = pt.PrettyTable()
+        table.field_names = ['Username', 'Password', 'Shopping Number', 'Shopping Total']
+        # add users into the table as rows
+        for i in range(len(self.user_list)):
+            table.add_row([
+                # Username
+                self.user_list[i].username,
+                # Password
+                self.user_list[i].password,
+                # Shopping Number
+                len(self.user_list[i].shopping_list),
+                # Shopping Total
+                self.user_list[i].calculate_sum(),
+            ])
+        # print the table
+        print(table)
+
+    def print_item_list(self):
+        """ print the item list
+        """
+        # create table with PrettyTable
+        table = pt.PrettyTable()
+        table.field_names = ['Name', 'Price']
+        # add items into the table as rows
+        for i in range(len(self.item_list)):
+            table.add_row([
+                # Name
+                self.item_list[i].name,
+                # Price
+                str(self.item_list[i].price) + ' / ' + self.item_list[i].unit,
+            ])
+        # print the table
+        print(table)
 
 
+####################
+# Program Entrance #
+####################
 if __name__ == '__main__':
     manager = Manager('', '')
     manager.run()
