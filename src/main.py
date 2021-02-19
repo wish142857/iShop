@@ -1,14 +1,34 @@
+""""""""""""""""""""
+" [iShop]  ver 0.1 "
+""""""""""""""""""""
+import prettytable as pt
+
+
 class Code:
     """
     Class: Running Result Status Code
     """
+    # Succeeded
     SUCCESS = 0
+    # Failed: internal error
+    FAIL_INTERNAL_ERROR = 1
+    # Failed: wrong username or password
+    FAIL_WRONG_USERNAME_OR_PASSWORD = 1
+    # Failed: item not found
+    FAIL_ITEM_NOT_FOUND = 2
+    # Failed: item already exists
+    FAIL_ITEM_ALREADY_EXISTS = 3
+    # Failed: illegal username
+    FAIL_ILLEGAL_USERNAME = 4
+    # Failed: illegal item number
+    FAIL_ILLEGAL_NUMBER = 5
 
 
 class Item:
     """
     Class: Item
     """
+
     def __init__(self, name: str = '', price: float = 0.0, unit: str = ''):
         """
         :param name: name of the item
@@ -24,6 +44,7 @@ class User:
     """
     Class: User
     """
+
     def __init__(self, username: str, password: str = ''):
         """
         :param username: username of the user
@@ -39,46 +60,88 @@ class User:
         :param number: number of new item
         :return: running result status code
         """
-        if item and number > 0:
+        if item and number >= 0:
+            # check whether item already exists
+            for i in range(len(self.shopping_list)):
+                if self.shopping_list[i]['item'] == item:
+                    return Code.FAIL_ITEM_ALREADY_EXISTS
+            # insert item into list
             self.shopping_list.append({'item': item, 'number': number})
             return Code.SUCCESS
+        else:
+            return Code.FAIL_INTERNAL_ERROR
 
-        return False
-
-    def delete_item(self, item: Item) -> bool:
+    def delete_item(self, item: Item) -> int:
         """ delete selected item from the shopping list
-        :param item:
-        :return:
+        :param item: selected item to delete
+        :return: running result status code
         """
         if item:
+            # check whether selected item exists
+            # if exists, delete item from list
             for i in range(len(self.shopping_list)):
                 if self.shopping_list[i]['item'] == item:
                     self.shopping_list.pop(i)
-                    return True
-        return False
+                    return Code.SUCCESS
+            # item not found
+            return Code.FAIL_ITEM_NOT_FOUND
+        else:
+            return Code.FAIL_INTERNAL_ERROR
 
-    def modify_item(self, item: Item, number: float) -> bool:
-        if item and number > 0:
+    def modify_item(self, item: Item, number: float) -> int:
+        """ modify the number of selected item in the shopping list
+        :param item: selected item to modify
+        :param number: new item number
+        :return: running result status code
+        """
+        if item and number >= 0:
+            # check whether selected item exists
+            # if exists, modify the number
             for i in range(len(self.shopping_list)):
                 if self.shopping_list[i]['item'] == item:
                     self.shopping_list[i]['number'] = number
-                    return True
-        return False
+                    return Code.SUCCESS
+            # item not found
+            return Code.FAIL_ITEM_NOT_FOUND
+        else:
+            return Code.FAIL_INTERNAL_ERROR
 
-    def clear_item(self) -> bool:
-        """ clear shopping list
-        :return: whether running successfully
+    def clear_item(self) -> int:
+        """ clear the shopping list
+        :return: running result status code
         """
         self.shopping_list.clear()
-        return True
+        return Code.SUCCESS
+
+    def print_list(self):
+        """ print the shopping list
+        """
+        # create table with PrettyTable
+        table = pt.PrettyTable()
+        table.field_names = ['Name', 'Price', 'Number', 'Total']
+        # add items into the table as rows
+        for i in range(len(self.shopping_list)):
+            table.add_row([
+                # Name
+                self.shopping_list[i]['item'].name,
+                # Price
+                str(self.shopping_list[i]['item'].price) + ' / ' + self.shopping_list[i]['item'].unit,
+                # Number
+                str(self.shopping_list[i]['number']),
+                # Total
+                round(self.shopping_list[i]['item'].price * self.shopping_list[i]['number'], 2),
+            ])
+        # add the sum of all items as the last row
+        table.add_row(['', '', '', self.calculate_sum()])
+        print(table)
 
     def calculate_sum(self) -> float:
         """ calculate the sum of items in the shopping list
         :return: sum of items in the shopping list
         """
-        item_sum = 0.0
+        item_sum = 0.00
         for i in range(len(self.shopping_list)):
-            item_sum += self.shopping_list[i]['item'].price * self.shopping_list[i]['number']
+            item_sum += round(self.shopping_list[i]['item'].price * self.shopping_list[i]['number'], 2)
         return item_sum
 
 
@@ -86,9 +149,9 @@ class Manager:
     """
     Class: Program Manager
     """
-    USER_OFFLINE_STATUS = 0     # status code when user not logged in
-    USER_ONLINE_STATUS = 1      # status code when user logged in
-    ADMIN_ONLINE_STATUS = 2     # status code when admin logged in
+    USER_OFFLINE_STATUS = 0  # status code when user not logged in
+    USER_ONLINE_STATUS = 1  # status code when user logged in
+    ADMIN_ONLINE_STATUS = 2  # status code when admin logged in
 
     def __init__(self, username: str, password: str = ''):
         """
@@ -102,10 +165,23 @@ class Manager:
         self.item_list = []
         self.user_list = []
 
-
     def run(self):
+        """ run shopping system
+        """
+        # ***** Main Loop *****
         while True:
-            print('Hello, world')
+            if self.current_status == Manager.USER_OFFLINE_STATUS:
+                # *** Handle User Offline ***
+                while True:
+                    break
+            elif self.current_status == Manager.USER_ONLINE_STATUS:
+                # *** Handle User Online ***
+                while True:
+                    break
+            elif self.current_status == Manager.ADMIN_ONLINE_STATUS:
+                # *** Handle Admin Online ***
+                while True:
+                    break
 
     def load(self):
         pass
@@ -127,22 +203,18 @@ class Manager:
         """
         if self.current_status == Manager.USER_OFFLINE_STATUS:
             # print hint for user not logged in
-            print('<logon>')
-            print('<login>')
-            print('<logout>')
-            print('<help>')
-            print('<exit>')
+            print('**********')
+            print('<logon>: user register')
+            print('<login>: user login')
+            print('<help>: print hint')
+            print('<exit>: exit program')
         elif self.current_status == Manager.USER_ONLINE_STATUS:
             # print hint for user logged in
-            print('<logon>')
-            print('<login>')
             print('<logout>')
             print('<help>')
             print('<exit>')
         elif self.current_status == Manager.ADMIN_ONLINE_STATUS:
             # print hint for admin logged in
-            print('<logon>')
-            print('<login>')
             print('<logout>')
             print('<help>')
             print('<exit>')
@@ -161,6 +233,5 @@ class Manager:
 
 
 if __name__ == '__main__':
-    manager = Manager()
+    manager = Manager('', '')
     manager.run()
-
