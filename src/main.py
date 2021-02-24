@@ -50,9 +50,8 @@ class User:
         """
         :param username: username of the user
         :param password: password of the user
+        :param shopping_list: shopping list of the user
         """
-        if shopping_list is None:
-            shopping_list = []
         self.username = username
         self.password = password
         if shopping_list:
