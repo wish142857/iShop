@@ -18,13 +18,13 @@ class Code:
     # Failed: user already exists
     FAIL_USER_ALREADY_EXISTS = 3
     # Failed: item already exists
-    FAIL_ITEM_ALREADY_EXISTS = 3
+    FAIL_ITEM_ALREADY_EXISTS = 4
     # Failed: illegal username or password
-    FAIL_ILLEGAL_USERNAME_OR_PASSWORD = 4
+    FAIL_ILLEGAL_USERNAME_OR_PASSWORD = 5
     # Failed: illegal item number
-    FAIL_ILLEGAL_NUMBER = 5
+    FAIL_ILLEGAL_NUMBER = 6
     # Failed: illegal item price
-    FAIL_ILLEGAL_PRICE = 6
+    FAIL_ILLEGAL_PRICE = 7
 
 
 class Item:
